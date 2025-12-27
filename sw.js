@@ -1,22 +1,19 @@
 
-const CACHE_NAME = 'queen-helper-v8';
+const CACHE_NAME = 'queen-helper-v9';
 const OFFLINE_URL = 'index.html';
 
-// 仅预缓存关键的本地资源，避免跨域请求阻塞安装
+// 预缓存关键静态资源（打包后的 JS/CSS 会由 Vite 自动处理，这里只缓存基础文件）
 const PRE_CACHE_ASSETS = [
   './',
   './index.html',
   './manifest.json',
-  './index.tsx',
-  './App.tsx',
-  './types.ts'
+  './index.css'
 ];
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      // 使用 allSettled 逐个添加，容忍部分资源（如 TSX）在非标准环境下的 fetch 失败
       return Promise.allSettled(
         PRE_CACHE_ASSETS.map(url => 
           cache.add(url).catch(err => console.warn(`SW: Failed to cache ${url}`, err))
@@ -41,12 +38,17 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
   
+  // 排除对 TSX 等源码文件的缓存干预，让浏览器/构建工具自行处理
+  if (url.pathname.endsWith('.tsx') || url.pathname.endsWith('.ts')) {
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((cached) => {
       if (cached) return cached;
       
       return fetch(event.request).then(response => {
-        // 动态缓存：仅缓存同源的成功请求，避免跨域 opaque 响应问题
+        // 仅缓存同源的成功响应
         if (response && response.status === 200 && url.origin === self.location.origin) {
           const copy = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
