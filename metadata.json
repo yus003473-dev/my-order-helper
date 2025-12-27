@@ -1,0 +1,7 @@
+{
+  "name": "Copy of 女王的接龙小助手1227",
+  "description": "本地脱机运行的私域销售工具。支持 PWA 安装、本地智能解析接龙、地址自动匹配及订单全生命周期管理。",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
